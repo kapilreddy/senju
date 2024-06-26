@@ -16,6 +16,11 @@ crate-type = ["cdylib"]
 [dependencies]
 anyhow = { workspace = true }
 spin-sdk = { workspace = true }
+avoevents-commands = { path = "crates/commands" }
+avoevents-queries = { path = "crates/queries" }
+[workspace]
+members = ["crates/*"]
+
 [workspace.dependencies]
 anyhow = "1"
 spin-sdk = "3.0.1"
