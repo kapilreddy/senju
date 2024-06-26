@@ -3,6 +3,9 @@ use serde::{Deserialize, Serialize};
 /// Each request will have multiple incoming events
 #[derive(Debug, Deserialize)]
 pub struct CreateEventsModel {
+    /// events is an array, each element of which should conform to
+    /// `EventModel`. The incoming data is an array because the
+    /// collector aggregates information before sending it.
     pub events: Vec<EventModel>,
     pub timestamp: i64,
     pub node_id: String,
