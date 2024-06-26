@@ -26,10 +26,15 @@ fn handle_event(req: Request) -> anyhow::Result<impl IntoResponse> {
     Ok(router.handle(req))
 }
 
-fn create_events(_req: Request, _: Params) -> anyhow::Result<impl IntoResponse> {
+fn create_events(req: Request, _: Params) -> anyhow::Result<impl IntoResponse> {
+    let Ok(model) = serde_json::from_slice::<CreateEventsModel>(req.body()) else {
+        return Ok(Response::builder().status(400).body(()).build());
+    };
+    let response = Commands::create_events(model)?;
+    let payload = serde_json::to_vec(&response)?;
     return Ok(Response::builder()
         .status(201)
         .header("Content-Type", "application/json")
-        .body("{\"message\": \"I'm new\"}")
+        .body(payload)
         .build());
 }
