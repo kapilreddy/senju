@@ -1,0 +1,20 @@
+spin_manifest_version = 2
+
+[application]
+name = "avoevents-server"
+version = "0.1.0"
+authors = ["Vedang Manerikar <vedang@unravel.tech>"]
+description = "A fairly simple implementation to consume and store senju farm events"
+
+[[trigger.http]]
+route = "/..."
+component = "avoevents-server"
+
+[component.avoevents-server]
+source = "target/wasm32-wasi/release/avoevents_server.wasm"
+allowed_outbound_hosts = []
+sqlite_databases = ["default"]
+
+[component.avoevents-server.build]
+command = "cargo build --target wasm32-wasi --release"
+watch = ["src/**/*.rs", "Cargo.toml"]
