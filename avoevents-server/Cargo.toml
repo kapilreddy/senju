@@ -18,9 +18,17 @@ anyhow = { workspace = true }
 spin-sdk = { workspace = true }
 avoevents-commands = { path = "crates/commands" }
 avoevents-queries = { path = "crates/queries" }
+serde_json = { workspace = true }
+log = { workspace = true }
+simple_logger = "4.0"
+
 [workspace]
 members = ["crates/*"]
 
 [workspace.dependencies]
 anyhow = "1"
 spin-sdk = "3.0.1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+chrono = "0.4"
