@@ -18,7 +18,8 @@ pub struct EventModel {
     pub event_timestamp: i64,
     pub sensor_id: String,
     pub node_id: String,
-    pub humidity: i64, // @TODO: Figure out how to make this i8 later
+    pub humidity: i64, // @TODO: Figure out how to make this i8 later,
+                       // because [tag: humidity_has_a_small_value]
 }
 
 /// for each event we store, we return the ID of the event
