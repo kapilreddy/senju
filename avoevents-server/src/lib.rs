@@ -1,7 +1,9 @@
 #![warn(rust_2018_idioms)]
 #![warn(rust_2021_compatibility)]
 
+use anyhow::bail;
 use avoevents_commands::{Commands, CreateEventsModel};
+use avoevents_queries::Queries;
 use log::{info, LevelFilter};
 use simple_logger::SimpleLogger;
 use spin_sdk::http::{IntoResponse, Params, Request, Response, Router};
@@ -16,7 +18,7 @@ fn handle_event(req: Request) -> anyhow::Result<impl IntoResponse> {
     let mut router = Router::default();
 
     // register routes for queries
-    // router.get("/avoevents", last_ten_events);
+    router.get("/avoevents", last_ten_events);
 
     // register routes for commands
     router.post("/avoevents", create_events);
@@ -37,4 +39,18 @@ fn create_events(req: Request, _: Params) -> anyhow::Result<impl IntoResponse> {
         .header("Content-Type", "application/json")
         .body(payload)
         .build());
+}
+
+fn last_ten_events(_: Request, _: Params) -> anyhow::Result<impl IntoResponse> {
+    match Queries::last_ten_events() {
+        Ok(p) => {
+            let payload = serde_json::to_vec(&p)?;
+            Ok(Response::builder()
+                .status(200)
+                .header("Content-Type", "application/json")
+                .body(payload)
+                .build())
+        }
+        Err(e) => bail!(e),
+    }
 }
