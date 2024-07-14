@@ -1,7 +1,8 @@
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
-use std::time::{SystemTime, Duration};
+use std::time::{SystemTime, Duration, UNIX_EPOCH};
 
+use serde::{Serialize, Deserialize};
 
 
 use core::str;
@@ -96,15 +97,27 @@ fn main(){
         // Obtain System Time
         let st_now = SystemTime::now();
         // Convert to UTC Time
+        let since_the_epoch = st_now
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards");
+
+        let unix_ts = since_the_epoch.as_secs();
         let dt_now_utc: DateTime<Utc> = st_now.clone().into();
         // Format Time String
         let formatted = format!("{}", dt_now_utc.format("%d/%m/%Y %H:%M:%S"));
+
+        post_data(vec!(HumidityReading {
+            humidity: translate_adc_to_humidity(sum as i32),
+            timestamp: unix_ts as i32,
+            sensor_id: SENSOR_ID.to_string(),
+            node_id: NODE_ID.to_string()
+        }));
         unsafe {
             println!("{}", formatted);
             println!("About to get to sleep now. Will wake up automatically in 5 seconds");
 
             // Deep sleep doesn't work with power bank as it has auto switch off
-            esp_idf_svc::sys::esp_deep_sleep(Duration::from_secs(10).as_micros() as u64);
+            esp_idf_svc::sys::esp_deep_sleep(Duration::from_secs(300).as_micros() as u64);
         }
     }
 
@@ -117,15 +130,40 @@ fn translate_adc_to_humidity(adc_value: i32) -> i32 {
 }
 
 
+#[derive(Debug, Serialize, Deserialize)]
+struct HumidityReading {
+    humidity: i32,
+    timestamp: i32,
+    sensor_id: String,
+    node_id: String
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct HumidityServerPayload {
+    events: Vec<HumidityReading>,
+    timestamp: i32,
+    node_id: String
+}
 
 
-fn post_data(humidity: i32) -> Result<()> {
 
-    let json = json!({
-        "sensor_id": "humidity_1",
-        "node_id": "farm_line_1",
-        "humidity": humidity,
-    });
+fn post_data(humidityList: Vec<HumidityReading>) -> Result<()> {
+
+    let st_now = SystemTime::now();
+    let since_the_epoch = st_now
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards");
+
+    let unix_ts = since_the_epoch.as_secs();
+
+    let payload = HumidityServerPayload {
+        events: humidityList,
+        timestamp: unix_ts as i32,
+        node_id: NODE_ID.to_string()
+    };
+
+    let json = json!(payload).to_string();
+    let content_length = json.len().to_string();
 
     // 1. Create a new EspHttpClient. (Check documentation)
     // ANCHOR: connection
@@ -138,8 +176,12 @@ fn post_data(humidity: i32) -> Result<()> {
     let mut client = Client::wrap(connection);
     let ep = ENDPOINT;
     // 2. Open a GET request to `url`
-    let headers = [("accept", "text/plain")];
-    let request = client.request(Method::Post, ep.as_ref(), &headers)?;
+    let headers = [("accept", "application/json"),
+                   ("Content-Length", &content_length)];
+    let mut request = client.request(Method::Post, ep.as_ref(), &headers)?;
+
+    request.write(json.as_bytes())?;
+
 
     // 3. Submit write request and check the status code of the response.
     // Successful http status codes are in the 200..=299 range.
